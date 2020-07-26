@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: Example of CodeBuild accessing build enviromnet
+
+Parameters:
+  DeploymentStage:
+    Description: Deployment stage
+    Type: String
+    Default: dev
+  TargetRepositoryUrl:
+    Description: GitHub repository
+    Type: String
+
+Resources:
+  BuildProjectServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action: sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service: codebuild.amazonaws.com
+        Version: "2012-10-17"
+  BuildProjectPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Effect: Allow
+            Resource:
+            - Fn::Join:
+              - ""
+              - - 'arn:'
+                - Ref: AWS::Partition
+                - ':logs:'
+                - Ref: AWS::Region
+                - ':'
+                - Ref: AWS::AccountId
+                - :log-group:/aws/codebuild/
+                - Ref: BuildProject
+            - Fn::Join:
+              - ""
+              - - 'arn:'
+                - Ref: AWS::Partition
+                - ':logs:'
+                - Ref: AWS::Region
+                - ':'
+                - Ref: AWS::AccountId
+                - :log-group:/aws/codebuild/
+                - Ref: BuildProject
+                - :*
+          - Action: '*'
+            Effect: Allow
+            Resource: '*'
+          - Action:
+            - 'ssmmessages:CreateControlChannel'
+            - 'ssmmessages:CreateDataChannel'
+            - 'ssmmessages:OpenControlChannel'
+            - 'ssmmessages:OpenDataChanne'
+            Effect: 'Allow'
+            Resource: '*'
+      PolicyName: 
+        Fn::Join:
+          - '-'
+          - - 'example-build-project-service-policy'
+            - !Ref DeploymentStage
+      Roles: 
+        - !Ref BuildProjectServiceRole
+  BuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: 
+        Fn::Join:
+          - '-'
+          - - 'example-build-project'
+            - !Ref DeploymentStage
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        PrivilegedMode: false
+        Type: LINUX_CONTAINER
+      ServiceRole: !GetAtt BuildProjectServiceRole.Arn
+      Source:
+        Type: GITHUB
+        Location: !Ref TargetRepositoryUrl
+        ReportBuildStatus: true
+        BuildSpec: |-
+          version "0.2"
+          phases:
+            install
+              runtime-versions:
+                nodejs: "10"
+                python: "3.8"
+              commands:
+                - pip3 install -r requirements.txt
+            pre_build:
+              commands:
+                - echo "Install packages"
+            build:
+              commands:
+                - echo "Run unit tests"
+                - codebuild-breakpoint
+                - python -m unittest -v
+            post_build:
+              commands:
+                - echo "Post build phase"
+
+Outputs:
+  BuildProjectArn:
+    Description: ARN of Build Project
+    Value: 
+      !GetAtt BuildProject.Arn
