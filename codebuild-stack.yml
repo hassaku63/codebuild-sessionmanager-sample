@@ -10,7 +10,6 @@ Parameters:
   TargetRepositoryUrl:
     Description: GitHub repository
     Type: String
-    Default: https://github.com/hassaku63/pbl.git
 
 Resources:
   BuildProjectServiceRole:
@@ -85,7 +84,6 @@ Resources:
         Type: NO_ARTIFACTS
       Environment:
         ComputeType: BUILD_GENERAL1_SMALL
-        # Image: aws/codebuild/standard:1.0
         Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
         PrivilegedMode: false
         Type: LINUX_CONTAINER
