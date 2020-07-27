@@ -11,8 +11,9 @@ Currently the buildspec written in the sample source, it's assuming targets for 
 
 ```bash
 aws cloudformation deploy \
-    --stackname <your-stack-name> \
-    --parameter-overrides TargetRepositoryUrl=<your-github-repository-url>
+    --stack-name <your-stack-name> \
+    --template-file codebuild-stack.yml \
+    --parameter-overrides TargetRepositoryUrl=<your-github-repository-url> \
     --capabilities CAPABILITY_IAM
 ```
 
